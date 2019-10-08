@@ -65,9 +65,13 @@ namespace Plugins.iOS.CoreHapticsUnity.Source
 
 		static CoreHapticsUnity()
 		{
+#if UNITY_EDITOR
+			isSupported = true;
+			LogLevel = LogsLevel.Verbose;
+#else
 			isSupported = Application.platform == RuntimePlatform.IPhonePlayer && _coreHapticsUnityIsSupport();
-			// isSupported = true;
 			LogLevel = LogsLevel.None;
+#endif
 		}
 
 		private static float RoundToDigits(float val, int digits)
@@ -76,7 +80,7 @@ namespace Plugins.iOS.CoreHapticsUnity.Source
 			return Mathf.Round(val * num) / num;
 		}
 
-		private static bool isSupported;
+		private static readonly bool isSupported;
 	
 		#region DllImport
 
