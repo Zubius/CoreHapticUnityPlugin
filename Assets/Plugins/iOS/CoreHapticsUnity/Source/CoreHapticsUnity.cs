@@ -8,15 +8,15 @@ namespace Plugins.iOS.CoreHapticsUnity.Source
 	{
 		public static LogsLevel LogLevel = LogsLevel.Verbose;
 		
-		public static void PlayContinuous(float intensity, float sharpness)
+		public static void PlayContinuous(float intensity, float sharpness, float durationInSeconds)
 		{
 			if (!isSupported) return;
-			_coreHapticsUnityPlayContinuous(intensity, sharpness);
+			_coreHapticsUnityPlayContinuous(intensity, sharpness, durationInSeconds);
 		}
 	
 		public static void PlayContinuous()
 		{
-			PlayContinuous(0.5f, 0.5f);
+			PlayContinuous(0.5f, 0.5f, 30f);
 		}
 
 		public static void PlayFromJson(string json)
@@ -86,7 +86,7 @@ namespace Plugins.iOS.CoreHapticsUnity.Source
 
 #if UNITY_IPHONE && !UNITY_EDITOR
         [DllImport("__Internal")]
-        private static extern void _coreHapticsUnityPlayContinuous(float intensity, float sharpness);
+        private static extern void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, float durationInSeconds);
 		[DllImport("__Internal")]
         private static extern void _coreHapticsUnityPlayTransient(float intensity, float sharpness);
         [DllImport("__Internal")]
@@ -102,10 +102,10 @@ namespace Plugins.iOS.CoreHapticsUnity.Source
         [DllImport("__Internal")]
         private static extern bool _coreHapticsUnityIsSupport();
 #else
-		private static void _coreHapticsUnityPlayContinuous(float intensity, float sharpness)
+		private static void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, float durationInSeconds)
 		{
 			if (LogLevel > LogsLevel.None)
-				Debug.LogFormat("[CoreHapticsUnity] Play Continuous with Intensity: {0} and Sharpness: {1}", intensity.ToString(), sharpness.ToString());
+				Debug.LogFormat("[CoreHapticsUnity] Play Continuous with Intensity: {0} and Sharpness: {1} for {2} seconds", intensity.ToString(), sharpness.ToString(), durationInSeconds.ToString());
 		}
 
 		private static void _coreHapticsUnityPlayTransient(float intensity, float sharpness)

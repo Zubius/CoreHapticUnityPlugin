@@ -16,7 +16,7 @@
 }
 
 + (CoreHapticUnityObjC*) shared;
-- (void) playContinuousHaptic:(float) intensity :(float) sharpness;
+- (void) playContinuousHaptic:(float) intensity :(float) sharpness :(float)duration;
 - (void) playTransientHaptic:(float) intensity :(float) sharpness;
 - (void) playWithDictionaryFromJsonPattern: (NSString*) jsonDict;
 - (void) playWIthAHAPFile: (NSString*) fileName;

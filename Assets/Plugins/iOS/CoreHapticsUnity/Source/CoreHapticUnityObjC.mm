@@ -48,13 +48,14 @@ static CoreHapticUnityObjC * _shared;
     self.continuousPlayer = NULL;
 }
 
-- (void) playContinuousHaptic:(float) intensity :(float)sharpness {
+- (void) playContinuousHaptic:(float) intensity :(float)sharpness :(float)duration {
   #if DEBUG
       NSLog(@"[CoreHapticUnityObjC] playContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, [self isSupportHaptic], self.engine, self.continuousPlayer);
   #endif
 
-    if (intensity > 1 || intensity < 0) return;
+    if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
+    if (duration <= 0 || duration > 30) return;
 
     if ([self isSupportHaptic]) {
 
@@ -63,11 +64,7 @@ static CoreHapticUnityObjC * _shared;
         }
         [self startEngine];
 
-        if (self.continuousPlayer == NULL) {
-            [self createContinuousPlayer];
-        }
-
-        [self updateContinuousHaptic:intensity :sharpness];
+        [self createContinuousPlayer:intensity :sharpness :duration];
 
         NSError* error = nil;
         [_continuousPlayer startAtTime:0 error:&error];
@@ -85,7 +82,7 @@ static CoreHapticUnityObjC * _shared;
       NSLog(@"[CoreHapticUnityObjC] playTransientHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, [self isSupportHaptic], self.engine);
   #endif
 
-    if (intensity > 1 || intensity < 0) return;
+    if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
 
     if ([self isSupportHaptic]) {
@@ -144,11 +141,15 @@ static CoreHapticUnityObjC * _shared;
 
 - (void) playWithDictionaryFromJsonPattern: (NSString*) jsonDict {
     if (jsonDict != nil) {
+        #if DEBUG
+            NSLog(@"[CoreHapticUnityObjC] playWithDictionaryFromJsonPattern --> json: %@", jsonDict);
+        #endif
+        
         NSError* error = nil;
         NSData* data = [jsonDict dataUsingEncoding:NSUTF8StringEncoding];
         NSDictionary* dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
 
-        if (error != nil) {
+        if (error == nil) {
             [self playWithDictionaryPattern:dict];
         } else {
             NSLog(@"[CoreHapticUnityObjC] Create dictionary from json error --> %@", error);
@@ -194,7 +195,7 @@ static CoreHapticUnityObjC * _shared;
       NSLog(@"[CoreHapticUnityObjC] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, [self isSupportHaptic], self.engine, self.continuousPlayer);
   #endif
 
-    if (intensity > 1 || intensity < 0) return;
+    if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
 
     if ([self isSupportHaptic] && _engine != NULL && _continuousPlayer != NULL) {
@@ -220,11 +221,15 @@ static CoreHapticUnityObjC * _shared;
 };
 
 - (void) createContinuousPlayer {
-    if ([self isSupportHaptic]) {
-        CHHapticEventParameter* intensity = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:1.0];
-        CHHapticEventParameter* sharpness = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticSharpness value:0.5];
+    [self createContinuousPlayer: 1.0 :0.5 :30];
+}
 
-        CHHapticEvent* event = [[CHHapticEvent alloc] initWithEventType:CHHapticEventTypeHapticContinuous parameters:@[intensity, sharpness] relativeTime:0 duration:30];
+- (void) createContinuousPlayer:(float) intens :(float)sharp :(float) duration {
+    if ([self isSupportHaptic]) {
+        CHHapticEventParameter* intensity = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:intens];
+        CHHapticEventParameter* sharpness = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticSharpness value:sharp];
+
+        CHHapticEvent* event = [[CHHapticEvent alloc] initWithEventType:CHHapticEventTypeHapticContinuous parameters:@[intensity, sharpness] relativeTime:0 duration:duration];
 
         NSError* error = nil;
         CHHapticPattern* pattern = [[CHHapticPattern alloc] initWithEvents:@[event] parameters:@[] error:&error];
@@ -312,7 +317,7 @@ static CoreHapticUnityObjC * _shared;
 
 - (NSString*) createNSString: (const char*) string {
   if (string)
-      return [NSString stringWithUTF8String: string];
+      return [[NSString alloc] initWithUTF8String:string];
   else
       return [NSString stringWithUTF8String: ""];
 }
@@ -323,8 +328,8 @@ static CoreHapticUnityObjC * _shared;
 #pragma mark - Bridge
 
 extern "C" {
-    void _coreHapticsUnityPlayContinuous(float intensity, float sharpness) {
-        [[CoreHapticUnityObjC shared] playContinuousHaptic:intensity :sharpness];
+    void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, int duration) {
+        [[CoreHapticUnityObjC shared] playContinuousHaptic:intensity :sharpness :duration];
     }
 //
     void _coreHapticsUnityPlayTransient(float intensity, float sharpness) {
