@@ -12,8 +12,11 @@ namespace CoreHapticsUnity
 		
 		private delegate void HapticStoppedDelegate(int reason);
 
-		public delegate void HapticStoppedReasonDelegate(CHHapticEngineStoppedReason reason);
+		public delegate void HapticStoppedReasonDelegate(int stopCode);
 
+		/// <summary>
+		/// Event after pattern ends. 0 - Ok; else error code
+		/// </summary>
 		public static event HapticStoppedReasonDelegate OnHapticStopped;
 		
 		public static void PlayContinuous(float intensity, float sharpness, float durationInSeconds)
@@ -98,9 +101,9 @@ namespace CoreHapticsUnity
 		}
 
 		[MonoPInvokeCallback(typeof(HapticStoppedDelegate))]
-		private static void HapticStoppedCallback(int reason)
+		private static void HapticStoppedCallback(int code)
 		{
-			OnHapticStopped?.Invoke((CHHapticEngineStoppedReason) reason);
+			OnHapticStopped?.Invoke(code);
 		}
 
 		private static readonly bool isSupported;
@@ -186,15 +189,5 @@ namespace CoreHapticsUnity
 	{
 		None,
 		Verbose
-	}
-
-	public enum CHHapticEngineStoppedReason
-	{
-		CHHapticEngineStoppedReasonSystemError = -1,
-		CHHapticEngineStoppedReasonUnknown = 0,
-		CHHapticEngineStoppedReasonAudioSessionInterrupt = 1,
-		CHHapticEngineStoppedReasonApplicationSuspended = 2,
-		CHHapticEngineStoppedReasonIdleTimeout = 3,
-		CHHapticEngineStoppedReasonNotifyWhenFinished = 4
 	}
 }
