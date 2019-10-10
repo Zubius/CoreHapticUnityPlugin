@@ -37,10 +37,6 @@ static hapticCallback onHapticFinished = NULL;
     if (self == [super init]) {
 
         [self createEngine];
-
-        if (self.engine != NULL) {
-            [self createContinuousPlayer];
-        }
     }
     return self;
 }
@@ -69,7 +65,7 @@ static hapticCallback onHapticFinished = NULL;
             [self createEngine];
         }
         [self startEngine];
-
+        
         [self createContinuousPlayer:intensity :sharpness :duration];
 
         NSError* error = nil;
@@ -133,6 +129,20 @@ static hapticCallback onHapticFinished = NULL;
 
         if (error == nil) {
             id<CHHapticPatternPlayer> player = [_engine createPlayerWithPattern:pattern error:&error];
+            
+            [_engine notifyWhenPlayersFinished:^CHHapticEngineFinishedAction(NSError * _Nullable error) {
+                if (error == NULL || error == nil) {
+                     if (onHapticFinished != NULL) {
+                         onHapticFinished(0);
+                     }
+                    return CHHapticEngineFinishedActionLeaveEngineRunning;
+                } else {
+                     if (onHapticFinished != NULL) {
+                         onHapticFinished((int)error.code);
+                     }
+                    return CHHapticEngineFinishedActionStopEngine;
+                }
+            }];
 
             if (error == nil) {
                 [player startAtTime:0 error:&error];
@@ -283,10 +293,6 @@ static hapticCallback onHapticFinished = NULL;
                 }
                 
                 weakSelf.isEngineStarted = false;
-                
-                if (onHapticFinished != NULL) {
-                    onHapticFinished((int)reason);
-                }
             };
 
             _engine.resetHandler = ^{
