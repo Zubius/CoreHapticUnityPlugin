@@ -11,6 +11,7 @@
 *.unityproj
 *.userprefs
 *.meta
+*.unitypackage
 Assets/AssemblyVersion.g.cs
 Assets/AssemblyVersion.g.cs.meta
 Assets/BuildNumber_NEW_NEW.g.cs

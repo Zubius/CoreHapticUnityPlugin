@@ -25,7 +25,6 @@ namespace CoreHapticsUnity
 			if (!isSupported) return;
 
 			var json = JsonConvert.SerializeObject(pattern, Formatting.Indented);
-			Debug.LogError(json);
 			_coreHapticsUnityplayWithDictionaryPattern(json);
 		}
 	

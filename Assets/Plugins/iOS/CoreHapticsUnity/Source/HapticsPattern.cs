@@ -4,10 +4,8 @@ using UnityEngine;
 
 namespace CoreHapticsUnity
 {
-	[Serializable]
 	public class HapticsPattern
 	{
-		[SerializeField]
 		public List<IEvent> Pattern;
 
 		public HapticsPattern(IEnumerable<IEvent> events)
@@ -28,10 +26,8 @@ namespace CoreHapticsUnity
 		}
 	}
 
-	[Serializable]
 	public class HapticEvent : IEvent
 	{
-		[SerializeField]
 		public Event Event;
 
 		public HapticEvent(float time, EventType eventType, EventParameter[] parameters, float duration = 0f)
@@ -40,10 +36,8 @@ namespace CoreHapticsUnity
 		}
 	}
 	
-	[Serializable]
 	public class HapticParameterCurve : IEvent
 	{
-		[SerializeField]
 		public ParameterCurve ParameterCurve;
 
 		public HapticParameterCurve(float time, ParameterIDType id, ParameterCurveControlPoint[] points)
@@ -52,19 +46,14 @@ namespace CoreHapticsUnity
 		}
 	}
 	
-	[Serializable]
 	public class Event
 	{
-		[SerializeField]
 		public float Time;
 
-		[SerializeField]
 		public string EventType;
 
-		[SerializeField]
 		public float EventDuration;
 
-		[SerializeField]
 		public EventParameter[] EventParameters;
 
 		public Event(float time, EventType eventType, EventParameter[] parameters, float duration = 0f)
@@ -76,17 +65,13 @@ namespace CoreHapticsUnity
 		}
 	}
 
-	[Serializable]
 	public class ParameterCurve
 	{
 
-		[SerializeField]
 		public string ParameterID;
 
-		[SerializeField]
 		public float Time;
 
-		[SerializeField]
 		public ParameterCurveControlPoint[] ParameterCurveControlPoints;
 
 		public ParameterCurve(float time, ParameterIDType id, ParameterCurveControlPoint[] points)
@@ -97,13 +82,10 @@ namespace CoreHapticsUnity
 		}
 	}
 
-	[Serializable]
 	public class EventParameter
 	{
-		[SerializeField] 
 		public string ParameterID;
 
-		[SerializeField]
 		public float ParameterValue;
 
 		public EventParameter(HapticsType id, float value)
@@ -113,13 +95,10 @@ namespace CoreHapticsUnity
 		}
 	}
 
-	[Serializable]
 	public class ParameterCurveControlPoint
 	{
-		[SerializeField] 
 		public float Time;
 
-		[SerializeField]
 		public float ParameterValue;
 
 		public ParameterCurveControlPoint(float time, float value)
