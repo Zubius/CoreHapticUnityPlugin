@@ -11,6 +11,8 @@
 #import <Foundation/Foundation.h>
 #import <CoreHaptics/CoreHaptics.h>
 
+typedef void (*hapticCallback)(int);
+
 @interface CoreHapticUnityObjC : NSObject {
     
 }
@@ -24,6 +26,7 @@
 - (void) stop;
 - (void) updateContinuousHaptic:(float) intensity :(float) sharpness;
 + (BOOL) isSupported;
++ (void) registerCallback:(hapticCallback) callback;
 
 @end
 

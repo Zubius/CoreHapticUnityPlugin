@@ -17,6 +17,7 @@
 @implementation CoreHapticUnityObjC
 
 static CoreHapticUnityObjC * _shared;
+static hapticCallback onHapticFinished = NULL;
 
 + (CoreHapticUnityObjC*) shared {
     @synchronized (self) {
@@ -25,6 +26,11 @@ static CoreHapticUnityObjC * _shared;
         }
     }
     return _shared;
+}
+
++ (void) registerCallback:(hapticCallback) callback
+{
+    onHapticFinished = callback;
 }
 
 - (id) init {
@@ -277,6 +283,10 @@ static CoreHapticUnityObjC * _shared;
                 }
                 
                 weakSelf.isEngineStarted = false;
+                
+                if (onHapticFinished != NULL) {
+                    onHapticFinished((int)reason);
+                }
             };
 
             _engine.resetHandler = ^{
@@ -358,5 +368,9 @@ extern "C" {
 
     bool _coreHapticsUnityIsSupport() {
         return [CoreHapticUnityObjC isSupported];
+    }
+
+    void _coreHapticsRegisterCallback(hapticCallback callback) {
+        [CoreHapticUnityObjC registerCallback:callback];
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+using AOT;
 using Newtonsoft.Json;
 using UnityEngine;
 
@@ -8,6 +9,12 @@ namespace CoreHapticsUnity
 	public static class CoreHapticsUnityProxy
 	{
 		public static LogsLevel LogLevel = LogsLevel.Verbose;
+		
+		private delegate void HapticStoppedDelegate(int reason);
+
+		public delegate void HapticStoppedReasonDelegate(CHHapticEngineStoppedReason reason);
+
+		public static event HapticStoppedReasonDelegate OnHapticStopped;
 		
 		public static void PlayContinuous(float intensity, float sharpness, float durationInSeconds)
 		{
@@ -25,6 +32,11 @@ namespace CoreHapticsUnity
 			if (!isSupported) return;
 
 			var json = JsonConvert.SerializeObject(pattern, Formatting.Indented);
+			_coreHapticsUnityplayWithDictionaryPattern(json);
+		}
+
+		public static void PlayPattern(string json)
+		{
 			_coreHapticsUnityplayWithDictionaryPattern(json);
 		}
 	
@@ -75,12 +87,20 @@ namespace CoreHapticsUnity
 			isSupported = Application.platform == RuntimePlatform.IPhonePlayer && _coreHapticsUnityIsSupport();
 			LogLevel = LogsLevel.None;
 #endif
+			
+			_coreHapticsRegisterCallback(HapticStoppedCallback);
 		}
 
 		private static float RoundToDigits(float val, int digits)
 		{
 			int num = (int)Mathf.Pow(10, digits);
 			return Mathf.Round(val * num) / num;
+		}
+
+		[MonoPInvokeCallback(typeof(HapticStoppedDelegate))]
+		private static void HapticStoppedCallback(int reason)
+		{
+			OnHapticStopped?.Invoke((CHHapticEngineStoppedReason) reason);
 		}
 
 		private static readonly bool isSupported;
@@ -104,6 +124,8 @@ namespace CoreHapticsUnity
         private static extern void _coreHapticsUnityplayWithAHAPFileFromURLAsString(string url);
         [DllImport("__Internal")]
         private static extern bool _coreHapticsUnityIsSupport();
+        [DllImport("__Internal")]
+        private static extern void _coreHapticsRegisterCallback(HapticStoppedDelegate callback);
 #else
 		private static void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, float durationInSeconds)
 		{
@@ -151,6 +173,10 @@ namespace CoreHapticsUnity
 		{
 			return false;
 		}
+		
+		private static void _coreHapticsRegisterCallback(HapticStoppedDelegate callback)
+		{
+		}
 #endif
 
 		#endregion // DllImport
@@ -160,5 +186,15 @@ namespace CoreHapticsUnity
 	{
 		None,
 		Verbose
+	}
+
+	public enum CHHapticEngineStoppedReason
+	{
+		CHHapticEngineStoppedReasonSystemError = -1,
+		CHHapticEngineStoppedReasonUnknown = 0,
+		CHHapticEngineStoppedReasonAudioSessionInterrupt = 1,
+		CHHapticEngineStoppedReasonApplicationSuspended = 2,
+		CHHapticEngineStoppedReasonIdleTimeout = 3,
+		CHHapticEngineStoppedReasonNotifyWhenFinished = 4
 	}
 }
