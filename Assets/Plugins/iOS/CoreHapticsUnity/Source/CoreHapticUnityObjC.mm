@@ -17,7 +17,7 @@
 @implementation CoreHapticUnityObjC
 
 static CoreHapticUnityObjC * _shared;
-static hapticCallback onHapticFinished = NULL;
+static hapticCallback onHapticPatternFinished = NULL;
 
 + (CoreHapticUnityObjC*) shared {
     @synchronized (self) {
@@ -30,7 +30,7 @@ static hapticCallback onHapticFinished = NULL;
 
 + (void) registerCallback:(hapticCallback) callback
 {
-    onHapticFinished = callback;
+    onHapticPatternFinished = callback;
 }
 
 - (id) init {
@@ -65,7 +65,7 @@ static hapticCallback onHapticFinished = NULL;
             [self createEngine];
         }
         [self startEngine];
-        
+
         [self createContinuousPlayer:intensity :sharpness :duration];
 
         NSError* error = nil;
@@ -129,16 +129,16 @@ static hapticCallback onHapticFinished = NULL;
 
         if (error == nil) {
             id<CHHapticPatternPlayer> player = [_engine createPlayerWithPattern:pattern error:&error];
-            
+
             [_engine notifyWhenPlayersFinished:^CHHapticEngineFinishedAction(NSError * _Nullable error) {
                 if (error == NULL || error == nil) {
-                     if (onHapticFinished != NULL) {
-                         onHapticFinished(0);
+                     if (onHapticPatternFinished != NULL) {
+                         onHapticPatternFinished(0);
                      }
                     return CHHapticEngineFinishedActionLeaveEngineRunning;
                 } else {
-                     if (onHapticFinished != NULL) {
-                         onHapticFinished((int)error.code);
+                     if (onHapticPatternFinished != NULL) {
+                         onHapticPatternFinished((int)error.code);
                      }
                     return CHHapticEngineFinishedActionStopEngine;
                 }
@@ -160,7 +160,7 @@ static hapticCallback onHapticFinished = NULL;
         #if DEBUG
             NSLog(@"[CoreHapticUnityObjC] playWithDictionaryFromJsonPattern --> json: %@", jsonDict);
         #endif
-        
+
         NSError* error = nil;
         NSData* data = [jsonDict dataUsingEncoding:NSUTF8StringEncoding];
         NSDictionary* dict = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:&error];
@@ -231,8 +231,18 @@ static hapticCallback onHapticFinished = NULL;
 - (void) stop {
     if ([self isSupportHaptic]) {
 
-        NSError* error = nil;
-        [_continuousPlayer stopAtTime:0 error:&error];
+      NSError* error = nil;
+      if (_continuousPlayer != NULL)
+          [_continuousPlayer stopAtTime:0 error:&error];
+
+      if (_engine != NULL && _isEngineStarted) {
+          __weak CoreHapticUnityObjC *weakSelf = self;
+
+            [_engine stopWithCompletionHandler:^(NSError *error) {
+                NSLog(@"[CoreHapticUnityObjC] The engine stopped with error: %@", error);
+                weakSelf.isEngineStarted = false;
+            }];
+        }
     }
 };
 
@@ -291,7 +301,7 @@ static hapticCallback onHapticFinished = NULL;
                         NSLog(@"[CoreHapticUnityObjC] Unknown error");
                         break;
                 }
-                
+
                 weakSelf.isEngineStarted = false;
             };
 
@@ -347,7 +357,7 @@ extern "C" {
     void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, int duration) {
         [[CoreHapticUnityObjC shared] playContinuousHaptic:intensity :sharpness :duration];
     }
-//
+
     void _coreHapticsUnityPlayTransient(float intensity, float sharpness) {
         [[CoreHapticUnityObjC shared] playTransientHaptic:intensity :sharpness];
     }

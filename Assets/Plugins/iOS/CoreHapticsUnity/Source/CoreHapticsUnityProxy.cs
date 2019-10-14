@@ -17,7 +17,7 @@ namespace CoreHapticsUnity
 		/// <summary>
 		/// Event after pattern ends. 0 - Ok; else error code
 		/// </summary>
-		public static event HapticStoppedReasonDelegate OnHapticStopped;
+		public static event HapticStoppedReasonDelegate OnHapticPatternStopped;
 		
 		public static void PlayContinuous(float intensity, float sharpness, float durationInSeconds)
 		{
@@ -103,7 +103,7 @@ namespace CoreHapticsUnity
 		[MonoPInvokeCallback(typeof(HapticStoppedDelegate))]
 		private static void HapticStoppedCallback(int code)
 		{
-			OnHapticStopped?.Invoke(code);
+			OnHapticPatternStopped?.Invoke(code);
 		}
 
 		private static readonly bool isSupported;

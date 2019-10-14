@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace CoreHapticsUnity
 {
 	public class HapticsPattern
 	{
+		[JsonProperty("Pattern")]
 		public List<IEvent> Pattern;
 
 		public HapticsPattern(IEnumerable<IEvent> events)
@@ -28,6 +30,7 @@ namespace CoreHapticsUnity
 
 	public class HapticEvent : IEvent
 	{
+		[JsonProperty("Event")]
 		public Event Event;
 
 		public HapticEvent(float time, EventType eventType, EventParameter[] parameters, float duration = 0f)
@@ -36,8 +39,10 @@ namespace CoreHapticsUnity
 		}
 	}
 	
+	[JsonObject(MemberSerialization.OptIn)]
 	public class HapticParameterCurve : IEvent
 	{
+		[JsonProperty("ParameterCurve")]
 		public ParameterCurve ParameterCurve;
 
 		public HapticParameterCurve(float time, ParameterIDType id, ParameterCurveControlPoint[] points)
@@ -48,12 +53,16 @@ namespace CoreHapticsUnity
 	
 	public class Event
 	{
+		[JsonProperty("Time")]
 		public float Time;
 
+		[JsonProperty("EventType")]
 		public string EventType;
 
+		[JsonProperty("EventDuration")]
 		public float EventDuration;
 
+		[JsonProperty("EventParameters")]
 		public EventParameter[] EventParameters;
 
 		public Event(float time, EventType eventType, EventParameter[] parameters, float duration = 0f)
@@ -67,11 +76,13 @@ namespace CoreHapticsUnity
 
 	public class ParameterCurve
 	{
-
+		[JsonProperty("ParameterID")]
 		public string ParameterID;
 
+		[JsonProperty("Time")]
 		public float Time;
 
+		[JsonProperty("ParameterCurveControlPoints")]
 		public ParameterCurveControlPoint[] ParameterCurveControlPoints;
 
 		public ParameterCurve(float time, ParameterIDType id, ParameterCurveControlPoint[] points)
@@ -84,8 +95,10 @@ namespace CoreHapticsUnity
 
 	public class EventParameter
 	{
+		[JsonProperty("ParameterID")]
 		public string ParameterID;
 
+		[JsonProperty("ParameterValue")]
 		public float ParameterValue;
 
 		public EventParameter(HapticsType id, float value)
@@ -97,8 +110,10 @@ namespace CoreHapticsUnity
 
 	public class ParameterCurveControlPoint
 	{
+		[JsonProperty("Time")]
 		public float Time;
 
+		[JsonProperty("ParameterValue")]
 		public float ParameterValue;
 
 		public ParameterCurveControlPoint(float time, float value)
