@@ -11,13 +11,17 @@
 @interface CoreHapticUnityObjC()
 @property (nonatomic, strong) CHHapticEngine* engine;
 @property (nonatomic, strong) id<CHHapticAdvancedPatternPlayer> continuousPlayer;
+@property (nonatomic, strong) id<CHHapticPatternPlayer> patternPlayer;
 @property (nonatomic) BOOL isEngineStarted;
+@property (nonatomic) BOOL isEngineIsStopping;
+@property (nonatomic) BOOL isSupportHaptic;
 @end
 
 @implementation CoreHapticUnityObjC
 
 static CoreHapticUnityObjC * _shared;
 static hapticCallback onHapticPatternFinished = NULL;
+static hapticCallback onHapticEngineStopped = NULL;
 
 + (CoreHapticUnityObjC*) shared {
     @synchronized (self) {
@@ -28,13 +32,19 @@ static hapticCallback onHapticPatternFinished = NULL;
     return _shared;
 }
 
-+ (void) registerCallback:(hapticCallback) callback
++ (void) registerCallbacks:(hapticCallback) patternFinishedCallback :(hapticCallback) engineStoppedCallback
 {
-    onHapticPatternFinished = callback;
+    onHapticPatternFinished = patternFinishedCallback;
+    onHapticEngineStopped = engineStoppedCallback;
 }
 
 - (id) init {
     if (self == [super init]) {
+
+        self.isSupportHaptic = @available(iOS 13, *) && CHHapticEngine.capabilitiesForHardware.supportsHaptics;
+        #if DEBUG
+          NSLog(@"[CoreHapticUnityObjC] isSupportHaptic -> %d", self.isSupportHaptic);
+        #endif
 
         [self createEngine];
     }
@@ -46,20 +56,37 @@ static hapticCallback onHapticPatternFinished = NULL;
       NSLog(@"[CoreHapticUnityObjC] dealloc");
   #endif
 
+  if (self.isSupportHaptic) {
+
     self.engine = NULL;
     self.continuousPlayer = NULL;
+    // NSError* error = nil;
+    // if (_continuousPlayer != NULL)
+    //     [_continuousPlayer stopAtTime:0 error:&error];
+    //
+    // if (_engine != NULL && _isEngineStarted) {
+    //     __weak CoreHapticUnityObjC *weakSelf = self;
+    //
+    //       [_engine stopWithCompletionHandler:^(NSError *error) {
+    //           NSLog(@"[CoreHapticUnityObjC] The engine stopped with error: %@", error);
+    //
+    //           weakSelf.engine = NULL;
+    //           weakSelf.continuousPlayer = NULL;
+    //       }];
+    //   }
+  }
 }
 
 - (void) playContinuousHaptic:(float) intensity :(float)sharpness :(float)duration {
   #if DEBUG
-      NSLog(@"[CoreHapticUnityObjC] playContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, [self isSupportHaptic], self.engine, self.continuousPlayer);
+      NSLog(@"[CoreHapticUnityObjC] playContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, self.isSupportHaptic, self.engine, self.continuousPlayer);
   #endif
 
     if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
     if (duration <= 0 || duration > 30) return;
 
-    if ([self isSupportHaptic]) {
+    if (self.isSupportHaptic) {
 
         if (self.engine == NULL) {
             [self createEngine];
@@ -81,13 +108,13 @@ static hapticCallback onHapticPatternFinished = NULL;
 
 - (void) playTransientHaptic:(float) intensity :(float)sharpness {
   #if DEBUG
-      NSLog(@"[CoreHapticUnityObjC] playTransientHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, [self isSupportHaptic], self.engine);
+      NSLog(@"[CoreHapticUnityObjC] playTransientHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@", intensity, sharpness, self.isSupportHaptic, self.engine);
   #endif
 
     if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
 
-    if ([self isSupportHaptic]) {
+    if (self.isSupportHaptic) {
 
         if (self.engine == NULL) {
             [self createEngine];
@@ -117,7 +144,7 @@ static hapticCallback onHapticPatternFinished = NULL;
 }
 
 - (void) playWithDictionaryPattern: (NSDictionary*) hapticDict {
-    if ([self isSupportHaptic]) {
+    if (self.isSupportHaptic) {
 
         if (self.engine == NULL) {
             [self createEngine];
@@ -128,7 +155,7 @@ static hapticCallback onHapticPatternFinished = NULL;
         CHHapticPattern* pattern = [[CHHapticPattern alloc] initWithDictionary:hapticDict error:&error];
 
         if (error == nil) {
-            id<CHHapticPatternPlayer> player = [_engine createPlayerWithPattern:pattern error:&error];
+            _patternPlayer = [_engine createPlayerWithPattern:pattern error:&error];
 
             [_engine notifyWhenPlayersFinished:^CHHapticEngineFinishedAction(NSError * _Nullable error) {
                 if (error == NULL || error == nil) {
@@ -145,7 +172,7 @@ static hapticCallback onHapticPatternFinished = NULL;
             }];
 
             if (error == nil) {
-                [player startAtTime:0 error:&error];
+                [_patternPlayer startAtTime:0 error:&error];
             } else {
                 NSLog(@"[CoreHapticUnityObjC] Create dictionary player error --> %@", error);
             }
@@ -176,7 +203,7 @@ static hapticCallback onHapticPatternFinished = NULL;
 }
 
 - (void) playWIthAHAPFile: (NSString*) fileName {
-    if ([self isSupportHaptic]) {
+    if (self.isSupportHaptic) {
 
         if (self.engine == NULL) {
             [self createEngine];
@@ -208,13 +235,13 @@ static hapticCallback onHapticPatternFinished = NULL;
 
 - (void) updateContinuousHaptic:(float) intensity :(float)sharpness {
   #if DEBUG
-      NSLog(@"[CoreHapticUnityObjC] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, [self isSupportHaptic], self.engine, self.continuousPlayer);
+      NSLog(@"[CoreHapticUnityObjC] updateContinuousHaptic --> intensity: %f, sharpness: %f, isSupportHaptic: %d, engine: %@, player: %@", intensity, sharpness, self.isSupportHaptic, self.engine, self.continuousPlayer);
   #endif
 
     if (intensity > 1 || intensity <= 0) return;
     if (sharpness > 1 || sharpness < 0) return;
 
-    if ([self isSupportHaptic] && _engine != NULL && _continuousPlayer != NULL) {
+    if (self.isSupportHaptic && _engine != NULL && _continuousPlayer != NULL) {
 
         CHHapticDynamicParameter* intensityParam = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticIntensityControl value:intensity relativeTime:0];
         CHHapticDynamicParameter* sharpnessParam = [[CHHapticDynamicParameter alloc] initWithParameterID:CHHapticDynamicParameterIDHapticSharpnessControl value:sharpness relativeTime:0];
@@ -229,29 +256,53 @@ static hapticCallback onHapticPatternFinished = NULL;
 }
 
 - (void) stop {
-    if ([self isSupportHaptic]) {
+    NSLog(@"[CoreHapticUnityObjC] STOP isSupportHaptic -> %d", self.isSupportHaptic);
+    if (self.isSupportHaptic) {
 
       NSError* error = nil;
       if (_continuousPlayer != NULL)
           [_continuousPlayer stopAtTime:0 error:&error];
 
-      if (_engine != NULL && _isEngineStarted) {
+      if (_patternPlayer != NULL)
+          [_patternPlayer stopAtTime:0 error:&error];
+
+      if (_engine != NULL && _isEngineStarted && !_isEngineIsStopping) {
           __weak CoreHapticUnityObjC *weakSelf = self;
 
-            [_engine stopWithCompletionHandler:^(NSError *error) {
+          _isEngineIsStopping = true;
+          [_engine stopWithCompletionHandler:^(NSError *error) {
+              if (error != nil) {
                 NSLog(@"[CoreHapticUnityObjC] The engine stopped with error: %@", error);
-                weakSelf.isEngineStarted = false;
-            }];
-        }
+              }
+              weakSelf.isEngineStarted = false;
+              weakSelf.isEngineIsStopping = false;
+
+              if (onHapticEngineStopped != NULL) {
+                  onHapticEngineStopped((int)error.code);
+              }
+          }];
+      }
     }
 };
+
+- (void) stopPatternPlayer {
+    NSLog(@"[CoreHapticUnityObjC] STOP PLAYER isSupportHaptic -> %d, _patternPlayer -> %@", self.isSupportHaptic, _patternPlayer);
+    if (self.isSupportHaptic && _patternPlayer != NULL) {
+        NSError* error;
+        [_patternPlayer stopAtTime:0 error:&error];
+
+        if (error != nil) {
+            NSLog(@"[CoreHapticUnityObjC] Player stop error --> %@", error);
+        }
+    }
+}
 
 - (void) createContinuousPlayer {
     [self createContinuousPlayer: 1.0 :0.5 :30];
 }
 
 - (void) createContinuousPlayer:(float) intens :(float)sharp :(float) duration {
-    if ([self isSupportHaptic]) {
+    if (self.isSupportHaptic) {
         CHHapticEventParameter* intensity = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:intens];
         CHHapticEventParameter* sharpness = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticSharpness value:sharp];
 
@@ -269,7 +320,7 @@ static hapticCallback onHapticPatternFinished = NULL;
 }
 
 - (void) createEngine {
-    if ([self isSupportHaptic]) {
+    if (self.isSupportHaptic) {
         NSError* error = nil;
         _engine = [[CHHapticEngine alloc] initAndReturnError:&error];
 
@@ -316,29 +367,15 @@ static hapticCallback onHapticPatternFinished = NULL;
 
 - (void) startEngine {
     if (!_isEngineStarted) {
-        NSError* reseterror = nil;
-        [_engine startAndReturnError:&reseterror];
+        NSError* error = nil;
+        [_engine startAndReturnError:&error];
 
-        if (reseterror != nil) {
-            NSLog(@"[CoreHapticUnityObjC] Engine reset error --> %@", reseterror);
+        if (error != nil) {
+            NSLog(@"[CoreHapticUnityObjC] Engine start error --> %@", error);
         } else {
             _isEngineStarted = true;
         }
     }
-}
-
-- (BOOL) isSupportHaptic {
-    if ([CoreHapticUnityObjC isSupported]) {
-        return CHHapticEngine.capabilitiesForHardware.supportsHaptics;
-    }
-    return NO;
-}
-
-+ (BOOL) isSupported {
-    if (@available(iOS 13, *)) {
-        return YES;
-    }
-    return NO;
 }
 
 - (NSString*) createNSString: (const char*) string {
@@ -366,6 +403,10 @@ extern "C" {
         [[CoreHapticUnityObjC shared] stop];
     }
 
+    void _coreHapticsUnityStopPlayer() {
+        [[CoreHapticUnityObjC shared] stopPatternPlayer];
+    }
+
     void _coreHapticsUnityupdateContinuousHaptics(float intensity, float sharpness) {
         [[CoreHapticUnityObjC shared] updateContinuousHaptic:intensity :sharpness];
     }
@@ -383,10 +424,10 @@ extern "C" {
     }
 
     bool _coreHapticsUnityIsSupport() {
-        return [CoreHapticUnityObjC isSupported];
+        return [[CoreHapticUnityObjC shared] isSupportHaptic];
     }
 
-    void _coreHapticsRegisterCallback(hapticCallback callback) {
-        [CoreHapticUnityObjC registerCallback:callback];
+    void _coreHapticsRegisterCallback(hapticCallback patternFinishedCallback, hapticCallback engineStoppedCallback) {
+        [CoreHapticUnityObjC registerCallbacks:patternFinishedCallback :engineStoppedCallback];
     }
 }

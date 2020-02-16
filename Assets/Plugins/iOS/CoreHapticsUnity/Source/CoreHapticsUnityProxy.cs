@@ -9,7 +9,7 @@ namespace CoreHapticsUnity
 	public static class CoreHapticsUnityProxy
 	{
 		public static LogsLevel LogLevel = LogsLevel.Verbose;
-		
+
 		private delegate void HapticStoppedDelegate(int reason);
 
 		public delegate void HapticStoppedReasonDelegate(int stopCode);
@@ -17,14 +17,16 @@ namespace CoreHapticsUnity
 		/// <summary>
 		/// Event after pattern ends. 0 - Ok; else error code
 		/// </summary>
-		public static event HapticStoppedReasonDelegate OnHapticPatternStopped;
-		
+		public static event HapticStoppedReasonDelegate OnHapticStopped;
+
+		public static event HapticStoppedReasonDelegate OnPatternStopped;
+
 		public static void PlayContinuous(float intensity, float sharpness, float durationInSeconds)
 		{
 			if (!isSupported) return;
 			_coreHapticsUnityPlayContinuous(intensity, sharpness, durationInSeconds);
 		}
-	
+
 		public static void PlayContinuous()
 		{
 			PlayContinuous(0.5f, 0.5f, 30f);
@@ -35,20 +37,23 @@ namespace CoreHapticsUnity
 			if (!isSupported) return;
 
 			var json = JsonConvert.SerializeObject(pattern, Formatting.Indented);
-			_coreHapticsUnityplayWithDictionaryPattern(json);
+            if (LogLevel > LogsLevel.None)
+			    Debug.Log($"[CoreHapticUnity] {json}");
+			PlayPattern(json);
 		}
 
 		public static void PlayPattern(string json)
 		{
+			if (!isSupported) return;
 			_coreHapticsUnityplayWithDictionaryPattern(json);
 		}
-	
+
 		public static void PlayTransient(float intensity, float sharpness)
 		{
 			if (!isSupported) return;
 			_coreHapticsUnityPlayTransient(intensity, sharpness);
 		}
-	
+
 		public static void PlayTransient()
 		{
 			PlayTransient(0.5f, 0.5f);
@@ -72,10 +77,15 @@ namespace CoreHapticsUnity
 			_coreHapticsUnityStop();
 		}
 
+		public static void StopPlayer()
+		{
+			if (!isSupported) return;
+			_coreHapticsUnityStopPlayer();
+		}
+
 		public static void UpdateContinuousValues(float intensity, float sharpness)
 		{
 			if (!isSupported) return;
-			
 			_coreHapticsUnityupdateContinuousHaptics(RoundToDigits(intensity, 3), RoundToDigits(sharpness, 3));
 		}
 
@@ -88,10 +98,10 @@ namespace CoreHapticsUnity
 			LogLevel = LogsLevel.Verbose;
 #else
 			isSupported = Application.platform == RuntimePlatform.IPhonePlayer && _coreHapticsUnityIsSupport();
-			LogLevel = LogsLevel.None;
+			LogLevel = LogsLevel.Verbose;
 #endif
-			
-			_coreHapticsRegisterCallback(HapticStoppedCallback);
+
+			_coreHapticsRegisterCallback(PatternStoppedCallback, HapticStoppedCallback);
 		}
 
 		private static float RoundToDigits(float val, int digits)
@@ -103,11 +113,17 @@ namespace CoreHapticsUnity
 		[MonoPInvokeCallback(typeof(HapticStoppedDelegate))]
 		private static void HapticStoppedCallback(int code)
 		{
-			OnHapticPatternStopped?.Invoke(code);
+			OnHapticStopped?.Invoke(code);
+		}
+
+		[MonoPInvokeCallback(typeof(HapticStoppedDelegate))]
+		private static void PatternStoppedCallback(int code)
+		{
+			OnPatternStopped?.Invoke(code);
 		}
 
 		private static readonly bool isSupported;
-	
+
 		#region DllImport
 
 #if UNITY_IPHONE && !UNITY_EDITOR
@@ -117,6 +133,8 @@ namespace CoreHapticsUnity
         private static extern void _coreHapticsUnityPlayTransient(float intensity, float sharpness);
         [DllImport("__Internal")]
         private static extern void _coreHapticsUnityStop();
+        [DllImport("__Internal")]
+        private static extern void _coreHapticsUnityStopPlayer();
         [DllImport("__Internal")]
         private static extern void _coreHapticsUnityupdateContinuousHaptics(float intensity, float sharpness);
         [DllImport("__Internal")]
@@ -128,7 +146,7 @@ namespace CoreHapticsUnity
         [DllImport("__Internal")]
         private static extern bool _coreHapticsUnityIsSupport();
         [DllImport("__Internal")]
-        private static extern void _coreHapticsRegisterCallback(HapticStoppedDelegate callback);
+        private static extern void _coreHapticsRegisterCallback(HapticStoppedDelegate patternFinishedCallback, HapticStoppedDelegate engineStoppedCallback);
 #else
 		private static void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, float durationInSeconds)
 		{
@@ -146,6 +164,12 @@ namespace CoreHapticsUnity
 		{
 			if (LogLevel > LogsLevel.None)
 				Debug.LogFormat("[CoreHapticsUnity] Stop");
+		}
+
+		private static void _coreHapticsUnityStopPlayer()
+		{
+			if (LogLevel > LogsLevel.None)
+				Debug.LogFormat("[CoreHapticsUnity] Stop Player");
 		}
 
 		private static void _coreHapticsUnityupdateContinuousHaptics(float intensity, float sharpness)
@@ -176,8 +200,8 @@ namespace CoreHapticsUnity
 		{
 			return false;
 		}
-		
-		private static void _coreHapticsRegisterCallback(HapticStoppedDelegate callback)
+
+		private static void _coreHapticsRegisterCallback(HapticStoppedDelegate patternFinishedCallback, HapticStoppedDelegate engineStoppedCallback)
 		{
 		}
 #endif

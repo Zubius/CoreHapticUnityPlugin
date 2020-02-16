@@ -14,7 +14,7 @@
 typedef void (*hapticCallback)(int);
 
 @interface CoreHapticUnityObjC : NSObject {
-    
+
 }
 
 + (CoreHapticUnityObjC*) shared;
@@ -24,9 +24,10 @@ typedef void (*hapticCallback)(int);
 - (void) playWIthAHAPFile: (NSString*) fileName;
 - (void) playWithAHAPFileFromURLAsString: (NSString*) urlAsString;
 - (void) stop;
+- (void) stopPatternPlayer;
 - (void) updateContinuousHaptic:(float) intensity :(float) sharpness;
-+ (BOOL) isSupported;
-+ (void) registerCallback:(hapticCallback) callback;
++ (BOOL) isSupportHaptic;
++ (void) registerCallbacks:(hapticCallback) patternFinishedCallback :(hapticCallback) engineStoppedCallback;
 
 @end
 
