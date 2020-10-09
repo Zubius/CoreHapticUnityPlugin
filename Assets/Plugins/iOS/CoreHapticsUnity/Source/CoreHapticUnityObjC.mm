@@ -391,7 +391,7 @@ static hapticCallback onHapticEngineStopped = NULL;
 #pragma mark - Bridge
 
 extern "C" {
-    void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, int duration) {
+    void _coreHapticsUnityPlayContinuous(float intensity, float sharpness, float duration) {
         [[CoreHapticUnityObjC shared] playContinuousHaptic:intensity :sharpness :duration];
     }
 
